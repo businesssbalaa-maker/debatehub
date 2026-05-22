@@ -1,10 +1,54 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
 import './Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
+  
+  // --- Persistent State Handlers ---
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [userId, setUserId] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [walletBalance, setWalletBalance] = useState("0.00");
+
+  // --- Initialize Session States and Account Metrics ---
+  useEffect(() => {
+    // 1. Check local synchronization metrics across both authorization formats
+    const localToken = localStorage.getItem('auth_token') || Cookies.get('2ndtredingWeb');
+    const localLoginFlag = localStorage.getItem('isLoggedIn');
+    const savedUserId = localStorage.getItem('userId');
+    const storedUserData = localStorage.getItem('userData');
+
+    if (localToken && (localLoginFlag === "true" || storedUserData)) {
+      setIsLoggedIn(true);
+      if (savedUserId) setUserId(savedUserId);
+
+      if (storedUserData) {
+        try {
+          const parsedUser = JSON.parse(storedUserData);
+          setUserProfile(parsedUser);
+
+          // 2. Map variable numbers to the wallet card seamlessly based on active ledger variables
+          if (parsedUser.balance !== undefined) {
+            setWalletBalance(Number(parsedUser.balance).toFixed(2));
+          } else if (parsedUser.Withdrawal !== undefined) {
+            setWalletBalance(Number(parsedUser.Withdrawal).toFixed(2));
+          }
+        } catch (err) {
+          console.error("Failed to parse user tracking vectors locally:", err);
+        }
+      }
+    } else {
+      // Safe fallback state clean-gate
+      setIsLoggedIn(false);
+      setUserId(null);
+      setUserProfile(null);
+      setWalletBalance("0.00");
+    }
+  }, []);
+
+  // Configured market categories mapping profile attributes
   const categories = [
     { icon: "⚽", name: "Sports", active: false, accent: "#fbbf24" },
     { icon: "🏛️", name: "Politics", active: true, accent: "#3b82f6" },
@@ -13,6 +57,8 @@ export default function Home() {
     { icon: "💻", name: "Tech", active: false, accent: "#a855f7" },
     { icon: "⚔️", name: "Fun Battles", active: false, accent: "#f43f5e" },
   ];
+
+  // Global Trending feed list view database records
   const trendingQuestions = [
     { 
       id: 1, 
@@ -69,10 +115,8 @@ export default function Home() {
   };
 
   const handleAuthAction = () => {
-    if (!isLoggedIn) {
-      setIsLoggedIn(true); 
-    } else {
-      console.log("Opening user workspace account profile drawer options...");
+    if (isLoggedIn) {
+      console.log(`Opening menu configuration parameters for active user sequence ID: ${userId}`);
     }
   };
 
@@ -107,20 +151,23 @@ export default function Home() {
           <div className="navbar-actions-panel">
             <div className="rupee-balance-pill">
               <span className="balance-currency-symbol">₹</span>
-              <span className="balance-numerical-value">2,450.00</span>
+              <span className="balance-numerical-value">{walletBalance}</span>
             </div>
             
             <div className="profile-auth-trigger-box">
-              {/* {isLoggedIn ? (
+              {/* Dynamic UI Swap based on authentication state */}
+              {isLoggedIn ? (
                 <Link to="/wallet" className="luxury-avatar-badge" onClick={handleAuthAction}>
-                  <span className="avatar-core-initial">R</span>
+                  <span className="avatar-core-initial">
+                    {userProfile?.phone ? userProfile.phone.slice(-2) : "DH"}
+                  </span>
                   <div className="avatar-ping-indicator"></div>
                 </Link>
-              ) : ( */}
+              ) : (
                 <Link to="/auth" className="luxury-auth-btn" onClick={handleAuthAction}>
                   Join / Sign Up
                 </Link>
-              {/* )} */}
+              )}
             </div>
           </div>
 

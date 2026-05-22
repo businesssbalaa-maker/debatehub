@@ -5,14 +5,14 @@ import Cookies from "js-cookie";
 import pako from "pako";
 import './Auth.css';
 
-// 1. STRICT IMPORT: Only using your central api.js functions and config tokens
+// 1. STRICT IMPORT: Using central api.js functions and config tokens
 import { registerUser, loginUser, SECRET_KEY, sendOtpNoCheck } from '../api'; 
 
 export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // App view state controller matrices: 'login' | 'signup' | 'otp'
+  // App view state controller: 'login' | 'signup' | 'otp'
   const [authMode, setAuthMode] = useState('login');
   
   // Explicitly mapping your backend payload schemas
@@ -46,9 +46,10 @@ export default function Auth() {
     if (successMessage) setSuccessMessage('');
   };
 
-  // Step 1: Request OTP via central sendOtpNoCheck handler from api.js
-  const handleRequestOTP = async (e) => {
+  // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request)
+  const handleInitialSubmit = async (e) => {
     e.preventDefault();
+    
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone)) {
       setErrorMessage('Please enter a valid 10-digit Indian phone number.');
@@ -60,34 +61,62 @@ export default function Auth() {
       return;
     }
 
-    if (authMode === 'signup' && (!formData.tradePassword || formData.tradePassword.length !== 6)) {
-      setErrorMessage('A 6-digit secure Trade Password is required for withdrawals.');
-      return;
-    }
-
     setLoading(true);
     setErrorMessage('');
-    try {
-      // Calling imported endpoint utility directly
-      const data = await sendOtpNoCheck(formData.phone);
 
-      if (data.success) {
-        setGeneratedOtp(data?.data?.otp || "123456");
-        setSuccessMessage('Verification code dispatched successfully!');
-        setAuthMode('otp');
-      } else {
-        setErrorMessage(data?.data?.message || "Failed to send OTP code.");
+    try {
+      // ==========================================
+      // BRANCH 1: DIRECT LOGIN (NO OTP AT ALL)
+      // ==========================================
+      if (authMode === 'login') {
+        const loginPayload = { phone: formData.phone, password: formData.password };
+        const loginData = await loginUser(loginPayload);
+
+        if (loginData.success || loginData.token) {
+          localStorage.setItem('auth_token', loginData.token);
+          
+          if (loginData.user) {
+            localStorage.setItem("userData", JSON.stringify(loginData.user));
+            localStorage.setItem("userId", loginData.user._id);
+            localStorage.setItem("isLoggedIn", "true");
+          }
+          
+          setSuccessMessage('Welcome back! Entering Arena...');
+          setTimeout(() => navigate('/'), 800);
+        }
+        return; // Exit execution chain
+      }
+
+      // ==========================================
+      // BRANCH 2: SIGNUP MODE (REQUESTS OTP CODE)
+      // ==========================================
+      if (authMode === 'signup') {
+        if (!formData.tradePassword || formData.tradePassword.length !== 6) {
+          setErrorMessage('A 6-digit secure Trade Password is required for withdrawals.');
+          setLoading(false);
+          return;
+        }
+
+        const data = await sendOtpNoCheck(formData.phone);
+
+        if (data.success) {
+          setGeneratedOtp(data?.data?.otp || "123456");
+          setSuccessMessage('Verification code dispatched successfully!');
+          setAuthMode('otp'); // Swap screen to verification step
+        } else {
+          setErrorMessage(data?.data?.message || "Failed to send OTP code.");
+        }
       }
     } catch (err) {
-      console.error("OTP Handshake Failure:", err);
-      setErrorMessage('Authorization gate rejected your number request.');
+      console.error("Authentication Process Failure:", err);
+      setErrorMessage(err.response?.data?.message || 'Invalid credentials or connection error.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2: Final Verification — Calling registerUser and loginUser cleanly from api.js
-  const handleVerifyAuth = async (e) => {
+  // Step 2: Final Verification (Only called during SIGNUP registration path)
+  const handleVerifySignup = async (e) => {
     e.preventDefault();
     
     if (!formData.otp) {
@@ -102,62 +131,46 @@ export default function Auth() {
     setErrorMessage('');
 
     try {
-      // If completing a brand new registration path
-      if (authMode === 'otp' && (formData.tradePassword || formData.refCode)) {
-        const signupPayload = {
-          phone: formData.phone,
-          password: formData.password,
-          tradePassword: formData.tradePassword,
-          refCode: formData.refCode || null,
-          otp: formData.otp,
-        };
-        
-        // 2. EXPLICIT NATIVE CALL: Directly using your imported register wrapper
-        const response = await registerUser(signupPayload);
-        if (response.token) {
-          // Binary compression layer matching your guidelines
-          const jsonString = JSON.stringify(response.user);
-          const compressed = pako.deflate(jsonString);
-          const compressedBase64 = btoa(String.fromCharCode(...compressed));
+      const signupPayload = {
+        phone: formData.phone,
+        password: formData.password,
+        tradePassword: formData.tradePassword,
+        refCode: formData.refCode || null,
+        otp: formData.otp,
+      };
+      
+      const response = await registerUser(signupPayload);
+      
+      if (response.token) {
+        // Binary compression layer matching configuration guidelines
+        const jsonString = JSON.stringify(response.user);
+        const compressed = pako.deflate(jsonString);
+        const compressedBase64 = btoa(String.fromCharCode(...compressed));
 
-          // Encrypt base64 chunk string
-          const encryptedUser = CryptoJS.AES.encrypt(
-            compressedBase64,
-            SECRET_KEY
-          ).toString();
+        // Encrypt base64 user payload string
+        const encryptedUser = CryptoJS.AES.encrypt(compressedBase64, SECRET_KEY).toString();
 
-          // Sanitize safe format extensions
-          const base64url = encryptedUser
-            .replace(/\+/g, "-")
-            .replace(/\//g, "_")
-            .replace(/=+$/, "");
+        // Sanitize safe URL formatting strings
+        const base64url = encryptedUser
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
 
-          // Inject persistent secure cookies
-          Cookies.set("2ndtredingWeb", response.token, { expires: 7, path: "/" });
-          Cookies.set("2ndtredingWebUser", base64url, { expires: 7, path: "/" });
+        // Inject production cookie layers
+        Cookies.set("2ndtredingWeb", response.token, { expires: 7, path: "/" });
+        Cookies.set("2ndtredingWebUser", base64url, { expires: 7, path: "/" });
 
-          localStorage.setItem("userData", JSON.stringify(response.user));
-          setSuccessMessage(response.message || "Registered successfully!");
-          navigate("/");
-          return;
-        }
-      }
+        // Synchronize environment management keys locally
+        localStorage.setItem("userData", JSON.stringify(response.user));
+        localStorage.setItem("userId", response.user._id);
+        localStorage.setItem("isLoggedIn", "true");
 
-      // 3. EXPLICIT NATIVE CALL: Directly using your imported login wrapper
-      const loginPayload = { phone: formData.phone, password: formData.password };
-      const loginData = await loginUser(loginPayload);
-
-      if (loginData.success || loginData.token) {
-        localStorage.setItem('auth_token', loginData.token);
-        if (loginData.user) {
-          localStorage.setItem("userData", JSON.stringify(loginData.user));
-        }
-        setSuccessMessage('Authentication confirmed! Entering Arena...');
-        navigate('/');
+        setSuccessMessage(response.message || "Registered successfully!");
+        setTimeout(() => navigate("/"), 800);
       }
     } catch (err) {
-      console.error("Auth helper pipeline settlement crash:", err);
-      setErrorMessage(err.response?.data?.message || 'Transaction authorization rejected.');
+      console.error("Signup validation crash:", err);
+      setErrorMessage(err.response?.data?.message || 'Registration authorization rejected.');
     } finally {
       setLoading(false);
     }
@@ -192,7 +205,7 @@ export default function Auth() {
         )}
 
         {authMode !== 'otp' ? (
-          <form onSubmit={handleRequestOTP} className="auth-form-matrix">
+          <form onSubmit={handleInitialSubmit} className="auth-form-matrix">
             <h3 className="auth-stage-title">
               {authMode === 'login' ? 'Welcome Back' : 'Create Secure Wallet Account'}
             </h3>
@@ -262,7 +275,7 @@ export default function Auth() {
             )}
 
             <button type="submit" disabled={loading} className="auth-action-submit-btn">
-              {loading ? 'CONNECTING GATEWAY...' : 'VERIFY & REQUEST OTP'}
+              {loading ? 'PROCESSING CLIENT TRANSACTION...' : authMode === 'login' ? 'LOG IN NOW' : 'VERIFY & REQUEST OTP'}
             </button>
 
             <div className="auth-mode-switch-footer">
@@ -274,7 +287,7 @@ export default function Auth() {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleVerifyAuth} className="auth-form-matrix">
+          <form onSubmit={handleVerifySignup} className="auth-form-matrix">
             <h3 className="auth-stage-title">Verify System Token</h3>
             <p className="auth-otp-notice">We've generated an operational verification token sequence map for <br /> <strong>+91 {formData.phone}</strong></p>
 
