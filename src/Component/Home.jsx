@@ -5,8 +5,6 @@ import './Home.css';
 
 export default function Home() {
   const navigate = useNavigate();
-  
-  // --- Persistent State Handlers ---
   const [isLoggedIn, setIsLoggedIn] = useState(false); 
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);

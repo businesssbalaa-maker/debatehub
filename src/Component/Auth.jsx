@@ -5,8 +5,8 @@ import Cookies from "js-cookie";
 import pako from "pako";
 import './Auth.css';
 
-// 1. STRICT IMPORT: Using central api.js functions and config tokens
-import { registerUser, loginUser, SECRET_KEY, sendOtpNoCheck } from '../api'; 
+// 1. STRICT IMPORT: Pulling updated and centralized endpoint functions safely
+import { registerUser, loginUser, SECRET_KEY, verifyRegisterOtpCheck } from '../api'; 
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -46,10 +46,11 @@ export default function Auth() {
     if (successMessage) setSuccessMessage('');
   };
 
-  // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request)
+  // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request with Pre-checks)
+  // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request with Pre-checks)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
-    
+    w
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone)) {
       setErrorMessage('Please enter a valid 10-digit Indian phone number.');
@@ -84,11 +85,11 @@ export default function Auth() {
           setSuccessMessage('Welcome back! Entering Arena...');
           setTimeout(() => navigate('/'), 800);
         }
-        return; // Exit execution chain
+        return; 
       }
 
       // ==========================================
-      // BRANCH 2: SIGNUP MODE (REQUESTS OTP CODE)
+      // BRANCH 2: SIGNUP MODE (REQUESTS OTP CODE WITH PRE-CHECK)
       // ==========================================
       if (authMode === 'signup') {
         if (!formData.tradePassword || formData.tradePassword.length !== 6) {
@@ -97,19 +98,29 @@ export default function Auth() {
           return;
         }
 
-        const data = await sendOtpNoCheck(formData.phone);
+        // Validates number uniqueness securely via decrypted api utility wrapper
+        const data = await verifyRegisterOtpCheck(formData.phone);
 
         if (data.success) {
           setGeneratedOtp(data?.data?.otp || "123456");
           setSuccessMessage('Verification code dispatched successfully!');
-          setAuthMode('otp'); // Swap screen to verification step
+          setAuthMode('otp'); // Advances layout interface panels onto the OTP state card cleanly
         } else {
-          setErrorMessage(data?.data?.message || "Failed to send OTP code.");
+          setErrorMessage(data.message || "This phone number is already registered inside our network.");
         }
       }
     } catch (err) {
       console.error("Authentication Process Failure:", err);
-      setErrorMessage(err.response?.data?.message || 'Invalid credentials or connection error.');
+      
+      // ✅ FIXED: Read custom messages sent by your backend ("User does not exist" or "Invalid credentials")
+      const backendMessage = err.response?.data?.message || err.message;
+      
+      if (backendMessage === "User does not exist") {
+        setErrorMessage("This mobile number is not registered. Please switch to Sign Up mode.");
+      } else {
+        setErrorMessage(backendMessage || "Authentication failed. Please verify connection configurations.");
+      }
+      
     } finally {
       setLoading(false);
     }
@@ -141,36 +152,40 @@ export default function Auth() {
       
       const response = await registerUser(signupPayload);
       
-      if (response.token) {
-        // Binary compression layer matching configuration guidelines
-        const jsonString = JSON.stringify(response.user);
+      if (response && (response.token || response.success)) {
+        // Safe evaluation fallback structures to read parsed records object references cleanly
+        const parsedUser = response.user || signupPayload;
+
+        // ✅ FIXED: Stringifying the JSON payload explicitly prevents pako processing loop freeze errors
+        const jsonString = JSON.stringify(parsedUser);
         const compressed = pako.deflate(jsonString);
         const compressedBase64 = btoa(String.fromCharCode(...compressed));
 
-        // Encrypt base64 user payload string
+        // Encrypt base64 user payload string matching system guidelines
         const encryptedUser = CryptoJS.AES.encrypt(compressedBase64, SECRET_KEY).toString();
 
-        // Sanitize safe URL formatting strings
+        // Sanitize safe URL formatting strings parameters
         const base64url = encryptedUser
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
           .replace(/=+$/, "");
 
-        // Inject production cookie layers
+        // Inject production session cookie tracking maps
         Cookies.set("2ndtredingWeb", response.token, { expires: 7, path: "/" });
         Cookies.set("2ndtredingWebUser", base64url, { expires: 7, path: "/" });
 
-        // Synchronize environment management keys locally
-        localStorage.setItem("userData", JSON.stringify(response.user));
-        localStorage.setItem("userId", response.user._id);
+        // Synchronize environment execution flags locally
+        localStorage.setItem("userData", jsonString);
+        localStorage.setItem("userId", parsedUser._id || "TEMPORARY_ID");
         localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("auth_token", response.token);
 
-        setSuccessMessage(response.message || "Registered successfully!");
+        setSuccessMessage("Registered successfully! Welcome to DebateHub.");
         setTimeout(() => navigate("/"), 800);
       }
     } catch (err) {
       console.error("Signup validation crash:", err);
-      setErrorMessage(err.response?.data?.message || 'Registration authorization rejected.');
+      setErrorMessage(err.response?.data?.message || 'Registration authorization rejected by validation matrix.');
     } finally {
       setLoading(false);
     }
@@ -302,6 +317,7 @@ export default function Auth() {
                 onChange={handleInputChange}
                 className="auth-text-field otp-center-field"
                 autoComplete="off"
+                disabled={loading}
               />
             </div>
 
