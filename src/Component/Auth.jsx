@@ -50,7 +50,6 @@ export default function Auth() {
   // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request with Pre-checks)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
-    w
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(formData.phone)) {
       setErrorMessage('Please enter a valid 10-digit Indian phone number.');

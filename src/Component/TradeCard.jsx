@@ -1,125 +1,161 @@
 import { useState } from 'react';
 import './TradeCard.css';
 
-export default function TradeCard({ 
-  question, 
-  sharePrice = 6.50, 
-  categoryIcon = "⚡",
-  endTime = "01:30",
-  onPlaceTrade 
-}) {
+export default function TradeCard({ product, onPlaceTrade }) {
+  // HOOKS DECLARED FIRST (Enforces strict React hook lifecycle call execution frames order)
   const [selectedOption, setSelectedOption] = useState(null);
-  const [shareCount, setShareCount] = useState(1);
+  const [investmentAmount, setInvestmentAmount] = useState(product?.initialThreshold || 0);
   const [showOrderSlip, setShowOrderSlip] = useState(false);
+  const [inputError, setInputError] = useState("");
 
-  const yesPrice = sharePrice;
-  const noPrice = Math.max(0.5, 10 - sharePrice);
-  
-  const currentActivePrice = selectedOption === "Yes" ? yesPrice : noPrice;
-  const totalInvestment = shareCount * currentActivePrice;
+  if (!product) return null;
 
-  const handleOptionSelect = (option) => {
-    setSelectedOption(option);
-    setShareCount(1);
+  const {
+    _id,
+    question,
+    category,        
+    subCategory,     
+    options = [],
+    initialThreshold = 0,
+    endTime,
+  } = product;
+
+  const handleOptionSelect = (optionObj) => {
+    setSelectedOption(optionObj);
+    setInvestmentAmount(initialThreshold); 
+    setInputError("");
     setShowOrderSlip(true);
   };
 
-  const handleQuantityChange = (amount) => {
-    setShareCount(prev => Math.max(1, prev + amount));
+  const handleAmountChange = (e) => {
+    const value = Number(e.target.value);
+    setInvestmentAmount(value);
+    
+    if (value < initialThreshold) {
+      setInputError(`Minimum required pool allocation stake is ₹${initialThreshold}`);
+    } else {
+      setInputError("");
+    }
   };
 
   const handleCancel = () => {
     setShowOrderSlip(false);
     setSelectedOption(null);
+    setInputError("");
   };
 
   const handleConfirmOrder = () => {
     if (!selectedOption) return;
+    if (investmentAmount < initialThreshold) {
+      setInputError(`You must invest at least ₹${initialThreshold} to place an execution order.`);
+      return;
+    }
+
+    // ✅ UPDATED HANDLER REFLECTION: Emits structured variables precisely tailored to match route properties keys
     if (onPlaceTrade) {
       onPlaceTrade({
-        question,
-        position: selectedOption,
-        shares: shareCount,
-        pricePerShare: currentActivePrice,
-        totalAmount: totalInvestment
+        questionId: _id,
+        question: question,               // Transmits literal question text parameter 
+        chosenOptionId: selectedOption._id,
+        option: selectedOption.optionText, // Transmits literal option text string match parameters
+        investmentAmount: investmentAmount
       });
     }
+    
     setShowOrderSlip(false);
     setSelectedOption(null);
+  };
+
+  const formatEndTime = (dateString) => {
+    if (!dateString) return "Soon";
+    const dateObj = new Date(dateString);
+    return dateObj.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
     <div className="probo-trade-card">
       
-      {/* HEADER META ROW */}
+      {/* HEADER MARKET CLASSIFICATION BADGES */}
       <div className="card-top-meta">
         <div className="meta-badge-tag">
-          <span className="badge-icon">{categoryIcon}</span> 
-          <span className="badge-text">Opinion</span>
+          <span className="badge-text">{category} • {subCategory}</span>
         </div>
-        <div className="meta-timer-tag">⏰ Ends in {endTime}</div>
+        <div className="meta-timer-tag">⏰ Ends near {formatEndTime(endTime)}</div>
       </div>
 
-      {/* QUESTION */}
+      {/* CORE OPINION TOPIC */}
       <h3 className="card-question-text">{question}</h3>
 
-      {/* YES / NO ACTION BUTTONS */}
-      <div className="binary-action-row">
-        <button className="probo-btn-yes" onClick={() => handleOptionSelect("Yes")}>
-          <span className="btn-label">Put YES</span>
-          <span className="btn-price-tag">₹{yesPrice.toFixed(1)}</span>
-        </button>
-        <button className="probo-btn-no" onClick={() => handleOptionSelect("No")}>
-          <span className="btn-label">Put NO</span>
-          <span className="btn-price-tag">₹{noPrice.toFixed(1)}</span>
-        </button>
+      {/* DYNAMIC MCQ CONFIGURABLE BUTTONS BLOCK */}
+      <div className="mcq-options-stack">
+        {options.map((opt) => (
+          <button 
+            key={opt._id} 
+            className="mcq-option-row-btn" 
+            onClick={() => handleOptionSelect(opt)}
+          >
+            <span className="option-text-lbl">{opt.optionText}</span>
+            <span className="option-pool-tag">₹{Number(opt.totalInvestedAmount || 0).toLocaleString('en-IN')} pooled</span>
+          </button>
+        ))}
       </div>
 
-      {/* VOLUME INDICATOR */}
+      {/* MINIMUM ENTRY STATUS COMPLIANCE FOOTER */}
       <div className="card-bottom-volume-bar">
-        <span className="volume-icon">📊</span> over ₹4.2L matched on this event
+        <span>📋 Required Min Entry: ₹{initialThreshold}</span>
       </div>
 
-      {/* OVERLAY ORDER SLIP POPUP */}
+      {/* OVERLAY ACTION CHECKOUT ORDER SLIP MODAL */}
       {showOrderSlip && (
         <div className="inline-order-slip-overlay">
           
           <div className="slip-header-row">
-            <h4 className="slip-title">Set Your Position Order</h4>
+            <h4 className="slip-title">Set Pool Stake Allocation</h4>
             <button className="slip-dismiss-x" onClick={handleCancel}>×</button>
           </div>
 
           <div className="slip-stance-badge-row">
             <div className="stance-indicator">
-              <span className="indicator-lbl">Position stance</span>
-              <span className={`indicator-val val-${selectedOption.toLowerCase()}`}>{selectedOption}</span>
+              <span className="indicator-lbl">Selected Target</span>
+              <span className="indicator-val text-purple">{selectedOption?.optionText}</span>
             </div>
             <div className="stance-indicator text-right">
-              <span className="indicator-lbl">Price/Share</span>
-              <span className="indicator-val text-white">₹{currentActivePrice.toFixed(2)}</span>
+              <span className="indicator-lbl">Required Baseline</span>
+              <span className="indicator-val text-white">≥ ₹{initialThreshold}</span>
             </div>
           </div>
 
-          <div className="slip-calculator-matrix">
-            <div className="qty-counter-block">
-              <span className="calc-mini-lbl">Number of Shares</span>
-              <div className="counter-btn-wrap">
-                <button className="counter-action-trigger" onClick={() => handleQuantityChange(-1)}>−</button>
-                <span className="counter-numerical-val">{shareCount}</span>
-                <button className="counter-action-trigger" onClick={() => handleQuantityChange(1)}>+</button>
+          <div className="slip-input-calculator-matrix">
+            <div className="amount-field-wrapper">
+              <label className="calc-mini-lbl">Enter Investment Amount (INR)</label>
+              <div className="rupee-input-container-box">
+                <span className="currency-prefix-vector">₹</span>
+                <input 
+                  type="number"
+                  className="numerical-stake-input"
+                  min={initialThreshold}
+                  value={investmentAmount}
+                  onChange={handleAmountChange}
+                  placeholder={`Min ₹${initialThreshold}`}
+                />
               </div>
             </div>
-
-            <div className="total-payout-block text-right">
-              <span className="calc-mini-lbl">Total Investment</span>
-              <span className="payout-numerical-val">₹{totalInvestment.toFixed(2)}</span>
-            </div>
           </div>
+
+          {inputError && (
+            <div className="slip-validation-error-notice">
+              ⚠️ {inputError}
+            </div>
+          )}
 
           <div className="slip-action-footers">
             <button className="slip-btn-abort" onClick={handleCancel}>Cancel</button>
-            <button className="slip-btn-execute" onClick={handleConfirmOrder}>
-              Confirm & Pay ₹{totalInvestment.toFixed(2)}
+            <button 
+              className="slip-btn-execute" 
+              onClick={handleConfirmOrder}
+              disabled={!!inputError || investmentAmount <= 0}
+            >
+              Confirm & Invest ₹{investmentAmount}
             </button>
           </div>
 

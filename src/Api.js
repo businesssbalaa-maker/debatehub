@@ -77,46 +77,6 @@ export const sendOtpNoCheck = async (phone) => {
 };
 
 // ==========================================
-// 📈 PROBO PREDICTION MARKETPLACE MODULES
-// ==========================================
-
-export const getLiveStocksFeed = async (limit = 0) => {
-  try {
-    const res = await axios.get(`${API_BASE_URL}api/stocks`, { params: { limit } });
-    return res.data;
-  } catch (err) {
-    throw err;
-  }
-};
-
-export const getStockById = async (id) => {
-  try {
-    const res = await axios.get(`${API_BASE_URL}api/stocks/getProductById`, { params: { id } });
-    return res.data;
-  } catch (err) {
-    throw err;
-  }
-};
-
-export const buyStockShares = async (payload) => {
-  try {
-    const res = await axios.post(`${API_BASE_URL}api/trades/api/buy-stock`, payload);
-    return res.data;
-  } catch (err) {
-    throw err.response?.data || err;
-  }
-};
-
-export const exitStockPositionEarly = async (payload) => {
-  try {
-    const res = await axios.post(`${API_BASE_URL}api/trades/api/sell-stock`, payload);
-    return res.data;
-  } catch (err) {
-    throw err.response?.data || err;
-  }
-};
-
-// ==========================================
 // 🏦 BANK DETAILS & WINNINGS WITHDRAWALS
 // ==========================================
 
@@ -156,15 +116,6 @@ export const withdrawReq = async (payload) => {
 // 💳 GATEWAY DEPOSITS & RECHARGES MODULES
 // ==========================================
 
-export const QRrandom = async () => {
-  try {
-    const res = await axios.get(`${API_BASE_URL}api/trades/api/qr/random`);
-    return res.data;
-  } catch (err) {
-    throw err;
-  }
-};
-
 export const RechargeBalence = async (payload) => {
   try {
     const res = await axios.post(`${API_BASE_URL}api/trades/api/recharge`, payload);
@@ -182,3 +133,76 @@ export const getUserStatementHistory = async (userId) => {
     throw err.response?.data || err;
   }
 };
+// ==========================================
+// 📊 MCQ PRODUCT MARKETPLACE MODULES
+// ==========================================
+
+// Fetch active prediction questions (Supports dynamic category & subCategory query filters)
+export const getLiveProductsFeed = async (category = "", subCategory = "") => {
+  try {
+    const params = {};
+    if (category) params.category = category;
+    if (subCategory) params.subCategory = subCategory;
+
+    const res = await axios.get(`${API_BASE_URL}api/products`, { params });
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch products feed matrix:", err);
+    throw err.response?.data || err;
+  }
+};
+
+// Fetch a single MCQ product contract view block context by ID
+export const getProductById = async (id) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}api/products/getProductById`, {
+      params: { id },
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Failed to fetch targeted product record:", err);
+    throw err.response?.data || err;
+  }
+};
+// ==========================================
+// 💸 TRANSACTIONAL PURCHASE & SETTLEMENT MODULES
+// ==========================================
+
+export const placeMarketPrediction = async (payload) => {
+  try {
+    const res = await axios.post(`${API_BASE_URL}api/purchases`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to execute market position allocation stake:", err);
+    throw err.response?.data || err;
+  }
+};
+
+export const settleMarketPosition = async (questionId) => {
+  try {
+    const res = await axios.put(`${API_BASE_URL}api/purchases/settle/${questionId}`);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to run contract resolution settlement engine:", err);
+    throw err.response?.data || err;
+  }
+};
+
+export const getUserPurchaseHistory = async (userId) => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}api/purchases/user/${userId}`);
+    return res.data;
+  } catch (err) {
+    console.error("Failed to compile target profile's trade portfolio passbook:", err);
+    throw err.response?.data || err;
+  }
+};
+
+export const getuserData = async (userId)=>{
+  try {
+    const res =await axios.get(`${API_BASE_URL}api/users/details/${userId}`);
+    return res.data;
+  } catch (error) {
+    console.log(error)
+  }
+}

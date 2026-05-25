@@ -3,50 +3,38 @@ import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import './Wallet.css';
 
-// Centralizing all backend requests cleanly inside your api.js layer
-import { GetBankDetails, getUserStatementHistory } from '../api';
+// ✅ UNIFIED: Uses your updated profile reader method
+import { getuserData, getUserStatementHistory } from '../api';
 
 export default function Wallet() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('All');
   
-  // --- Live Balance States ---
+  // Live Balance States
   const [playableBalance, setPlayableBalance] = useState(0);
   const [withdrawableWinnings, setWithdrawableWinnings] = useState(0);
   const [totalCombinedBalance, setTotalCombinedBalance] = useState(0);
   const [userId, setUserId] = useState(null);
 
-  // --- Real-time Passbook Ledger Array States ---
   const [ledgerTransactions, setLedgerTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
 
-  // --- 1. Strict Session Purge Mechanism ---
   const handleLogout = () => {
     Cookies.remove("2ndtredingWeb", { path: "/" });
     Cookies.remove("2ndtredingWebUser", { path: "/" });
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("userData");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("isLoggedIn");
-    setPlayableBalance(0);
-    setWithdrawableWinnings(0);
-    setTotalCombinedBalance(0);
-    setUserId(null);
+    localStorage.clear();
     navigate("/auth");
   };
 
-  // --- 2. Centralized Production Passbook Builder Engine ---
   const fetchRealTimeLedgerHistory = async (targetUid) => {
     setLoadingTransactions(true);
     try {
-      // ✅ CALLED CLEANLY VIA YOUR API.JS METHOD NOW
       const resultData = await getUserStatementHistory(targetUid);
 
       if (resultData && resultData.success) {
         const payloadData = resultData.data;
         const compiledPassbookList = [];
 
-        // Map Stream A: Inbound Recharge Cash Top-Ups
         if (payloadData.rechargeHistory) {
           payloadData.rechargeHistory.forEach((deposit) => {
             compiledPassbookList.push({
@@ -62,7 +50,6 @@ export default function Wallet() {
           });
         }
 
-        // Map Stream B: Outbound Bank Line Settlements 
         if (payloadData.withdrawHistory) {
           payloadData.withdrawHistory.forEach((payout) => {
             compiledPassbookList.push({
@@ -78,13 +65,12 @@ export default function Wallet() {
           });
         }
 
-        // Map Stream C: Trade Placements (Deducted Stakes)
         if (payloadData.purchasesWithStock) {
           payloadData.purchasesWithStock.forEach((trade) => {
             compiledPassbookList.push({
               id: trade.purchaseId || 'TRD-MARKET',
               type: 'Debit',
-              desc: `Placed Bet: "${trade.stockName || 'Opinion Poll Contract'}" [Chosen Side: ${trade.chosenOption || 'YES'}]`,
+              desc: `Placed Bet: "${trade.stockName || 'Opinion Poll Contract'}"`,
               date: trade.purchaseDate ? new Date(trade.purchaseDate).toLocaleDateString('en-IN', {
                 day: 'numeric', month: 'short', year: 'numeric'
               }) : 'Settled',
@@ -94,44 +80,33 @@ export default function Wallet() {
           });
         }
 
-        // Chronological Sequence Sort: Latest actions always paint at index 0
         compiledPassbookList.sort((x, y) => new Date(y.date) - new Date(x.date));
         setLedgerTransactions(compiledPassbookList);
       }
     } catch (error) {
-      console.error("Critical Failure inside real-time history compiler loop:", error);
+      console.error("Failure inside history compiler loop:", error);
     } finally {
       setLoadingTransactions(false);
     }
   };
 
-  // --- 3. Live Balance Metrics Fetcher ---
+  // ✅ FIXED: Calls getuserData dynamically to read and split balances live from DB
   const fetchLiveWalletMetrics = async (activeUid) => {
     try {
-      const response = await GetBankDetails(activeUid);
-      if (response && response.data) {
-        const balanceVal = Number(response.data.Withdrawal || 0);
-        const playVal = Number(response.data.balance || 0);
+      const response = await getuserData(activeUid);
+      if (response && response.success && response.user) {
+        const wVal = Number(response.user.Withdrawal || 0);
+        const bVal = Number(response.user.balance || 0);
 
-        setWithdrawableWinnings(balanceVal);
-        setPlayableBalance(playVal);
-        setTotalCombinedBalance(balanceVal + playVal);
-      }
-    } catch (err) {
-      console.error("Error loading wallet finance data metrics:", err);
-      const storedUserData = localStorage.getItem("userData");
-      if (storedUserData) {
-        const parsed = JSON.parse(storedUserData);
-        const wVal = Number(parsed.Withdrawal || 0);
-        const bVal = Number(parsed.balance || 0);
         setWithdrawableWinnings(wVal);
         setPlayableBalance(bVal);
         setTotalCombinedBalance(wVal + bVal);
       }
+    } catch (err) {
+      console.error("Error loading wallet finance metrics:", err);
     }
   };
 
-  // --- 4. Initialization Component Hook ---
   useEffect(() => {
     const localLoginFlag = localStorage.getItem('isLoggedIn');
     const savedUserId = localStorage.getItem('userId');
@@ -146,15 +121,12 @@ export default function Wallet() {
     }
   }, []);
 
-  // --- Tab Filters Engine Mapping ---
   const filteredTxns = activeTab === 'All' 
     ? ledgerTransactions 
     : ledgerTransactions.filter(txn => txn.type === activeTab);
 
   return (
     <div className="wallet-page-container">
-      
-      {/* HEADER STICKY PANEL */}
       <header className="wallet-page-header">
         <div className="wallet-header-wrap">
           <div className="wallet-page-logo">
@@ -162,31 +134,21 @@ export default function Wallet() {
               <span className="back-arrow-vector">←</span> Back Home
             </button>
           </div>
-          
           <div className="wallet-user-stats">
             <div className="global-wallet-badge">₹{totalCombinedBalance.toFixed(2)}</div>
-            <button className="wallet-logout-trigger-btn" onClick={handleLogout}>
-              🚪 Log Out
-            </button>
+            <button className="wallet-logout-trigger-btn" onClick={handleLogout}>🚪 Log Out</button>
           </div>
         </div>
       </header>
 
-      {/* MAIN BODY WRAP */}
       <main className="wallet-page-layout">
-
-        {/* ROW 1: BALANCE SUMMARY AND QUICK ACTIONS */}
         <section className="wallet-summary-grid">
-          
-          {/* Detailed Rupee Assets Balance Card */}
           <div className="balance-breakdown-card glass-panel">
             <div className="card-top-row">
               <span className="balance-headline">Total Balance Assets</span>
               <span className="verified-shield">🛡️ Secure Account</span>
             </div>
-            
             <div className="primary-coin-metric">₹{totalCombinedBalance.toFixed(2)}</div>
-            
             <div className="balance-sub-metrics">
               <div className="metric-box">
                 <span className="metric-label">Winnings (Withdrawable)</span>
@@ -199,29 +161,20 @@ export default function Wallet() {
             </div>
           </div>
 
-          {/* Quick Cash Flow Management Form */}
-          <div className="wallet-quick-actions bg-brand-card">
+          <div className="wallet-quick-actions">
             <h3 className="actions-header-title">Funds Management</h3>
             <p className="actions-header-subtitle">Instantly add money or settle funds to your linked bank account.</p>
-            
             <div className="action-button-group">
-              <button className="action-btn btn-deposit" onClick={() => navigate('/recharge')}>
-                <span>➕</span> Deposit Money
-              </button>
-              <button className="action-btn btn-withdraw" onClick={() => navigate('/withdraw')}>
-                <span>💸</span> Instant Withdrawal
-              </button>
+              <button className="action-btn btn-deposit" onClick={() => navigate('/recharge')}>➕ Deposit Money</button>
+              <button className="action-btn btn-withdraw" onClick={() => navigate('/withdraw')}>💸 Instant Withdrawal</button>
             </div>
-            <p className="action-compliance-notice">⚡ Powered by instant IMPS & UPI payout architectures.</p>
+            <p className="action-compliance-notice">⚡ Powered by instant IMPS & UPI payouts.</p>
           </div>
-
         </section>
 
-        {/* ROW 2: TRANSACTION LEDGER TABLE */}
         <section className="wallet-ledger-section">
           <div className="ledger-header">
             <h2 className="ledger-title">Account Passbook</h2>
-            
             <div className="ledger-filters">
               {['All', 'Credit', 'Debit'].map((tab) => (
                 <button
@@ -235,8 +188,7 @@ export default function Wallet() {
             </div>
           </div>
 
-          {/* Data Table Viewport */}
-          <div className="table-responsive-wrapper scrollbar-hide">
+          <div className="table-responsive-wrapper">
             {loadingTransactions ? (
               <div className="ledger-realtime-spinner-container">
                 <div className="ledger-sync-dots">Synchronizing Transaction Ledger Nodes...</div>
@@ -273,9 +225,7 @@ export default function Wallet() {
                         {txn.type === 'Credit' ? '+' : '-'} ₹{txn.amount.toFixed(2)}
                       </td>
                       <td className="text-center">
-                        <span className={`status-pill-badge badge-${txn.status.toLowerCase()}`}>
-                          ● {txn.status}
-                        </span>
+                        <span className={`status-pill-badge badge-${txn.status.toLowerCase()}`}>● {txn.status}</span>
                       </td>
                     </tr>
                   ))}
@@ -284,7 +234,6 @@ export default function Wallet() {
             )}
           </div>
         </section>
-
       </main>
     </div>
   );

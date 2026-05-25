@@ -1,62 +1,84 @@
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import TradeCard from './TradeCard'; 
+import { getLiveProductsFeed, placeMarketPrediction } from '../api'; // ✅ CONNECTED TO YOUR NEW API HELPER
 import './MarketDetail.css';
 
 export default function MarketDetail() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 1. Extract category details passed from Home screen
-  const { 
-    category = "Sports", 
-    icon = "⚽", 
-    accentColor = "var(--purple-primary)",
-    forcedQuestion = null 
-  } = location.state || {};
+  // Extract variables natively from navigation routes state
+  const { category, accentColor = "#915EFF" } = location.state || {};
 
-  // 2. Dynamic multi-card market lists matching the active category path
-  // This simulates Probo's layout with multiple cards under the same main event
-  let marketCardsArray = [];
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  if (category === "Sports") {
-    marketCardsArray = [
-      { id: "S-1", question: forcedQuestion || "Kya RCB is baar IPL jeetegi?", sharePrice: 6.50, endTime: "01:30" },
-      { id: "S-2", question: "RCB to score 50+ runs in the powerplay?", sharePrice: 4.20, endTime: "00:45" },
-      { id: "S-3", question: "Will Virat Kohli score a century tonight?", sharePrice: 7.80, endTime: "02:15" }
-    ];
-  } else if (category === "Politics") {
-    marketCardsArray = [
-      { id: "P-1", question: forcedQuestion || "Will India achieve 8%+ GDP growth this fiscal year?", sharePrice: 5.20, endTime: "12 Days" },
-      { id: "P-2", question: "Will new renewable energy subsidies be declared this week?", sharePrice: 3.50, endTime: "3 Days" }
-    ];
-  } else if (category === "Movies") {
-    marketCardsArray = [
-      { id: "M-1", question: forcedQuestion || "Will Pushpa 2 cross 1000 Cr in worldwide collections?", sharePrice: 8.10, endTime: "5 Days" },
-      { id: "M-2", question: "Will the trailer get 50M+ views in 24 hours?", sharePrice: 6.00, endTime: "04:10" }
-    ];
-  } else if (category === "Tech") {
-    marketCardsArray = [
-      { id: "T-1", question: forcedQuestion || "AI Future me Jobs Khatam kar dega?", sharePrice: 7.00, endTime: "Dec 2026" },
-      { id: "T-2", question: "Will the next iPhone completely remove physical side buttons?", sharePrice: 4.50, endTime: "4 Months" }
-    ];
-  } else {
-    // Fallback default for remaining components (Fun Battles, Gaming, etc.)
-    marketCardsArray = [
-      { id: "F-1", question: forcedQuestion || "Thar vs Scorpio Kon Best?", sharePrice: 5.00, endTime: "01:10" }
-    ];
+  // Lifecycle Engine: Fetch real-time products under the dynamically selected category string
+  useEffect(() => {
+    if (!category) {
+      setErrorMessage("No active marketplace category context selected. Please return home.");
+      setLoading(false);
+      return;
+    }
+
+    async function loadCategorizedMarkets() {
+      try {
+        setLoading(true);
+        const response = await getLiveProductsFeed(category);
+        
+        if (response.success) {
+          setProducts(response.products || []);
+        } else {
+          setErrorMessage("Failed to populate matching market events.");
+        }
+      } catch (err) {
+        console.error("Failed to compile active opinion paths:", err);
+        setErrorMessage("Network timeout error loading target predictive contracts feed.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadCategorizedMarkets();
+  }, [category]);
+
+  // ✅ UPDATED PIPELINE: Fires your exact schema request payload format parameters
+  const handleTradeExecution = async (tradePayload) => {
+  try {
+    console.log("Processing trade checkouts payload matrix:", tradePayload);
+    
+    const sessionUserId = localStorage.getItem("userId");
+    if (!sessionUserId) {
+      alert("Session expired. Please log back in to place predictions.");
+      navigate('/auth');
+      return;
+    }
+
+    // ✅ FIXED: Variable names match your backend destructuring pattern perfectly
+    const targetPayload = {
+      userId: sessionUserId,
+      questionId: tradePayload.questionId,
+      chosenOptionId: tradePayload.chosenOptionId,
+      option: tradePayload.option,               // Changed from optionText to option
+      investmentAmount: tradePayload.investmentAmount // Changed from amount to investmentAmount
+    };
+
+    const result = await placeMarketPrediction(targetPayload);
+    
+    if (result.success) {
+      alert(`Prediction Placed successfully!\nMarket: ${tradePayload.question}\nPosition: ${tradePayload.option}\nStaked Amount: ₹${tradePayload.investmentAmount}`);
+      
+      // Re-trigger live database sync to update total pooled counters instantly on screen
+      const activeFeedUpdate = await getLiveProductsFeed(category);
+      if (activeFeedUpdate.success) setProducts(activeFeedUpdate.products || []);
+    }
+  } catch (err) {
+    console.error("Order desk booking fault rejection error:", err);
+    alert(err.message || "Investment failed. Please verify wallet balance.");
   }
-
-  // Central tracking calculation for the core header stats block
-  const overallStats = {
-    totalVolume: category === "Sports" ? "₹12,45,800" : category === "Politics" ? "₹45,20,000" : "₹8,50,000",
-    yesPoolPercent: 64,
-    noPoolPercent: 36
-  };
-
-  const handleTradeExecution = (tradePayload) => {
-    console.log("Confirmed List Order placed:", tradePayload);
-    alert(`Trade Placed successfully!\nMarket: ${tradePayload.question}\nPosition: ${tradePayload.position}\nShares: ${tradePayload.shares}\nTotal: ₹${tradePayload.totalAmount.toFixed(2)}`);
-  };
+};
 
   return (
     <div className="detail-page-container">
@@ -69,31 +91,41 @@ export default function MarketDetail() {
           </button>
           
           <div className="current-category-title">
-            <span className="category-header-icon">{icon}</span>
-            <h2>{category}</h2>
+            <h2>{category || "Loading"} Marketplace</h2>
           </div>
         </div>
       </header>
+
       <main className="market-detail-layout">
 
-        {/* BOTTOM COMPONENT: PROBO-STYLE VERTICAL LIST VIEW OF TRADING CARDS */}
         <section className="market-cards-list-section">
-          <h3 className="list-section-heading">Select a sub-market option to trade</h3>
+          <h3 className="list-section-heading">Select a live opinion pool stance option to stake trade</h3>
           
-          <div className="vertical-cards-list">
-            {marketCardsArray.map((card) => (
-              <div key={card.id} className="list-item-card-wrapper">
-                <TradeCard 
-                  question={card.question}
-                  sharePrice={card.sharePrice}
-                  options={["Yes", "No"]}
-                  categoryIcon={icon}
-                  endTime={card.endTime}
-                  onPlaceTrade={handleTradeExecution}
-                />
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="market-feed-loader-box">
+              <div className="spinning-orbit-vector"></div>
+              <p>Fetching active multi-option MCQ events lists from cluster servers...</p>
+            </div>
+          ) : errorMessage ? (
+            <div className="market-feed-error-box">
+              <p>⚠️ {errorMessage}</p>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="market-feed-empty-box">
+              <p>No active opinion questions found under the "{category}" category at this moment.</p>
+            </div>
+          ) : (
+            <div className="vertical-cards-list">
+              {products.map((item) => (
+                <div key={item._id} className="list-item-card-wrapper">
+                  <TradeCard 
+                    product={item}
+                    onPlaceTrade={handleTradeExecution}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
       </main>
