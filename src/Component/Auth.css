@@ -26,14 +26,12 @@
   background: linear-gradient(135deg, rgba(25, 22, 56, 0.45) 0%, rgba(15, 12, 38, 0.65) 100%);
   border: 1px solid rgba(145, 94, 255, 0.12);
   border-radius: 1.25rem;
-  padding: 2rem 1.5rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
 
 /* Brand Banner System Identity Typography rules */
 .auth-brand-header {
   text-align: center;
-  margin-bottom: 2rem;
 }
 
 .auth-bolt-icon {
@@ -260,7 +258,6 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
 }
 
 .auth-brand-header {
@@ -489,4 +486,36 @@
 
 .center-content {
   align-items: center !important;
+}
+
+.auth-top-nav-bar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 12px;
+}
+
+.auth-back-home-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+}
+
+.auth-back-home-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(145, 94, 255, 0.3); /* Subtly lights up purple on hover */
+  transform: translateX(-2px);
+}
+
+.back-home-txt {
+  margin-left: 4px;
 }

@@ -131,7 +131,7 @@ export default function Wallet() {
         <div className="wallet-header-wrap">
           <div className="wallet-page-logo">
             <button className="back-navigation-btn" onClick={() => navigate("/")}>
-              <span className="back-arrow-vector">←</span> Back Home
+              <span className="back-arrow-vector">←</span> Back
             </button>
           </div>
           <div className="wallet-user-stats">
@@ -166,7 +166,7 @@ export default function Wallet() {
             <p className="actions-header-subtitle">Instantly add money or settle funds to your linked bank account.</p>
             <div className="action-button-group">
               <button className="action-btn btn-deposit" onClick={() => navigate('/recharge')}>➕ Deposit Money</button>
-              <button className="action-btn btn-withdraw" onClick={() => navigate('/withdraw')}>💸 Instant Withdrawal</button>
+              <button className="action-btn btn-withdraw" onClick={() => navigate('/withdraw')}>💸 Withdrawal</button>
             </div>
             <p className="action-compliance-notice">⚡ Powered by instant IMPS & UPI payouts.</p>
           </div>
@@ -195,8 +195,7 @@ export default function Wallet() {
               </div>
             ) : filteredTxns.length === 0 ? (
               <div className="ledger-empty-placeholder-card">
-                <span className="empty-book-icon">📋</span>
-                <p>No transactions registered on this workspace node yet.</p>
+                <span className="empty-book-icon">📋No transactions registered on this workspace node yet.</span>
               </div>
             ) : (
               <table className="ledger-table">

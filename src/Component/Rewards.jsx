@@ -1,86 +1,89 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
+import { getUserPurchaseHistory, getuserData } from '../api'; // Central API module imports
 import './Rewards.css';
 
 export default function Rewards() {
+  const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState('All');
+  
+  // Real-time Database States
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [withdrawableBalance, setWithdrawableBalance] = useState("0.00");
+  const [liveInPlayBalance, setLiveInPlayBalance] = useState(0);
+  const [totalWonCash, setTotalWonCash] = useState(0);
 
-  const tradesData = [
-    {
-      id: 1,
-      match: "India vs Pakistan",
-      isVersus: true,
-      teams: [{ label: "IN", flag: "🇮🇳" }, { label: "PK", flag: "🇵🇰" }],
-      flagIcon: "🇮🇳",
-      prediction: "India to win",
-      invested: 500,
-      returns: 950, 
-      status: "Won",
-      timestamp: "Ended: May 19, 2026",
-      type: "Match"
-    },
-    {
-      id: 2,
-      match: "Kya RCB is baar IPL jeetegi?",
-      isVersus: false,
-      flagIcon: "🏏",
-      prediction: "Yes",
-      invested: 200,
-      returns: 0,
-      status: "Live",
-      timestamp: "Live Now • Ends in 01:30",
-      type: "Opinion"
-    },
-    {
-      id: 3,
-      match: "Next Over Me Wicket Aayega?",
-      isVersus: false,
-      flagIcon: "⚡",
-      prediction: "No",
-      invested: 150,
-      returns: 0,
-      status: "Lost",
-      timestamp: "Ended: Over 14.2",
-      type: "Match"
-    },
-    {
-      id: 4,
-      match: "Thar vs Scorpio Kon Best?",
-      isVersus: false,
-      flagIcon: "🚘",
-      prediction: "Thar",
-      invested: 300,
-      returns: 580,
-      status: "Won",
-      timestamp: "Ended: May 18, 2026",
-      type: "Opinion"
-    },
-    {
-      id: 5,
-      match: "Pushpa 2 1000 Cr Club me jayegi?",
-      isVersus: false,
-      flagIcon: "🎬",
-      prediction: "Yes",
-      invested: 1000,
-      returns: 0,
-      status: "Live",
-      timestamp: "Live Now • Ends in 02:15",
-      type: "Opinion"
+  // Filters setup to map against database string configurations
+  const filters = ['All', 'pending', 'win', 'loss'];
+
+  // 1. Fetch live metrics and balance allocations directly from DB
+  const loadDynamicPortfolioData = async () => {
+    const savedUserId = localStorage.getItem('userId');
+    const localToken = localStorage.getItem('auth_token') || Cookies.get('2ndtredingWeb');
+
+    if (!localToken || !savedUserId) {
+      localStorage.clear();
+      navigate("/auth");
+      return;
     }
-  ];
 
-  const filters = ['All', 'Live', 'Won', 'Lost'];
+    try {
+      setLoading(true);
+      const userRes = await getuserData(savedUserId);
+      if (userRes && userRes.success && userRes.user) {
+        const freshUser = userRes.user;
+        if (freshUser.Withdrawal !== undefined) {
+          setWithdrawableBalance(Number(freshUser.Withdrawal).toFixed(2));
+        } else if (freshUser.balance !== undefined) {
+          setWithdrawableBalance(Number(freshUser.balance).toFixed(2));
+        }
+      }
 
-  const filteredTrades = activeFilter === 'All' 
-    ? tradesData 
-    : tradesData.filter(item => item.status === activeFilter);
+      // Fetch absolute user standalone transaction purchases feed
+      const purchaseRes = await getUserPurchaseHistory(savedUserId);
+      if (purchaseRes && purchaseRes.success) {
+        const rawPurchasesList = purchaseRes.purchases || [];
+        setTrades(rawPurchasesList);
 
-  // Standard window trace controller to clear layout paths
-  const handleBackNavigation = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      console.log("Redirecting home...");
+        // Dynamically compute runtime summary panels stats indicators straight from database
+        let inPlayAccumulator = 0;
+        let wonAccumulator = 0;
+
+        rawPurchasesList.forEach((trade) => {
+          if (trade.winningStatus === 'pending') {
+            inPlayAccumulator += Number(trade.investmentAmount || 0);
+          } else if (trade.winningStatus === 'win') {
+            wonAccumulator += Number(trade.payoutAmount || 0);
+          }
+        });
+
+        setLiveInPlayBalance(inPlayAccumulator);
+        setTotalWonCash(wonAccumulator);
+      }
+    } catch (err) {
+      console.error("Failed to compile target live transaction portfolios matrix:", err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    loadDynamicPortfolioData();
+  }, []);
+
+  // Filter application calculation logic mapping raw strings
+  const filteredTrades = activeFilter === 'All'
+    ? trades
+    : trades.filter(item => item.winningStatus === activeFilter);
+
+  // Status mapping display parser configuration text helpers
+  const getDisplayStatusLabel = (status) => {
+    if (status === 'pending') return 'Live';
+    if (status === 'win') return 'Won';
+    if (status === 'loss') return 'Lost';
+    return status;
   };
 
   return (
@@ -90,12 +93,12 @@ export default function Rewards() {
       <header className="rewards-header">
         <div className="rewards-header-wrap">
           <div className="rewards-logo">
-           <button className="back-navigation-btn" onClick={handleBackNavigation}>
-            <span className="back-arrow-vector">←</span> Back
-          </button>
+            <button className="back-navigation-btn" onClick={() => navigate("/")}>
+              <span className="back-arrow-vector">←</span> Back
+            </button>
           </div>
           <div className="rewards-user-wallet">
-            <div className="rewards-wallet-badge">₹2,450.00</div>
+            <div className="rewards-wallet-badge">₹{withdrawableBalance}</div>
           </div>
         </div>
       </header>
@@ -106,24 +109,23 @@ export default function Rewards() {
         {/* ROW 1: BALANCE OVERVIEW & HEADER */}
         <section className="rewards-hero-section">
           <div className="rewards-headline-block">
-            <p className="rewards-tagline">Portfolio & History</p>
             <h1 className="rewards-title">Track Your Trades & <span className="rewards-title-highlight">Earnings</span></h1>
             <p className="rewards-description">Monitor your active investments on live matches or review your historical won and lost predictions.</p>
           </div>
 
           {/* Dynamic Wallet Balance Card */}
           <div className="rewards-balance-panel glass-panel">
-            <p className="balance-label">Total Withdrawable Balance</p>
-            <div className="balance-value">₹2,450.00</div>
+            <p className="balance-label">Withdrawable Funds Balance</p>
+            <div className="balance-value">₹{withdrawableBalance}</div>
             <div className="balance-investment-row">
               <div>
-                <span className="invest-sublabel">In Play (Live)</span>
-                <span className="invest-subvalue text-amber">₹1,200.00</span>
+                <span className="invest-sublabel">In Play (Live Stakes)</span>
+                <span className="invest-subvalue text-amber">₹{liveInPlayBalance.toFixed(2)}</span>
               </div>
               <div className="invest-divider-line"></div>
               <div>
-                <span className="invest-sublabel">Total Won Cash</span>
-                <span className="invest-subvalue text-emerald">₹1,530.00</span>
+                <span className="invest-sublabel">Total Won Cash Return</span>
+                <span className="invest-subvalue text-emerald">₹{totalWonCash.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -132,7 +134,7 @@ export default function Rewards() {
         {/* ROW 2: FILTERS & CARD GRID ARRAYS */}
         <section className="rewards-catalog-section">
           <div className="catalog-header">
-            <h2 className="catalog-section-title">Prediction History</h2>
+            <h2 className="catalog-section-title">Prediction Marketplace History</h2>
             
             <div className="catalog-filters scrollbar-hide">
               {filters.map((filter) => (
@@ -141,78 +143,84 @@ export default function Rewards() {
                   className={`filter-tab ${activeFilter === filter ? 'filter-tab-active' : 'filter-tab-inactive'}`}
                   onClick={() => setActiveFilter(filter)}
                 >
-                  {filter === 'All' ? 'All Bets' : `${filter} Matches`}
+                  {filter === 'All' ? 'All Bets' : `${getDisplayStatusLabel(filter)} Options`}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Fixed Trade History Cards Grid */}
-          <div className="rewards-grid">
-            {filteredTrades.map((trade) => (
-              <div key={trade.id} className="reward-card bg-brand-card">
-                <div className="reward-card-top">
-                  <div className="reward-brand-identity">
-                    
-                    {trade.isVersus ? (
-                      <div className="versus-flag-block">
-                        <div className="mini-flag-row font-mono">
-                          <span className="team-badge-txt">{trade.teams[0].label}</span>
-                          <span className="vs-center-divider">vs</span>
-                          <span className="team-badge-txt">{trade.teams[1].label}</span>
-                        </div>
+          {/* Core Status Block Switch Views */}
+          {loading ? (
+            <div className="rewards-loader-container-box">
+              <div className="spinning-sync-vector"></div>
+              <p>Compiling live database prediction history entries logs...</p>
+            </div>
+          ) : filteredTrades.length === 0 ? (
+            <div className="rewards-empty-state-card">
+              <span className="empty-state-icon-lbl">📋 No trade positions matching "{getDisplayStatusLabel(activeFilter)}" registered inside this node profile matrix.</span>
+            </div>
+          ) : (
+            <div className="rewards-grid">
+              {filteredTrades.map((trade) => (
+                <div key={trade._id} className="reward-card bg-brand-card">
+                  
+                  <div className="reward-card-top">
+                    <div className="reward-brand-identity">
+                      <span className="brand-avatar">📊</span>
+                      
+                      <div className="brand-title-meta">
+                        {/* Maps dynamic question string text natively from your document log layout keys */}
+                        <h3 className="brand-name">{trade.question}</h3>
+                        <span className="brand-type-badge">
+                          Invested On: {new Date(trade.investedAt).toLocaleDateString('en-IN', {
+                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="brand-avatar">{trade.flagIcon}</span>
-                    )}
-
-                    <div className="brand-title-meta">
-                      <h3 className="brand-name">{trade.match}</h3>
-                      <span className="brand-type-badge">{trade.timestamp}</span>
-                    </div>
-                  </div>
-                  
-                  <span className={`status-pill pill-${trade.status.toLowerCase()}`}>
-                    {trade.status}
-                  </span>
-                </div>
-
-                <div className="reward-card-divider"></div>
-
-                <div className="reward-card-bottom">
-                  <div className="trade-position-details">
-                    <span className="position-label">Your Staked Position:</span>
-                    <span className="position-value">{trade.prediction}</span>
-                  </div>
-
-                  <div className="reward-cost-metrics">
-                    <div className="metric-column">
-                      <span className="cost-label">Money Put In</span>
-                      <span className="cost-rupees">₹{trade.invested}</span>
                     </div>
                     
-                    <div className="metric-column text-right">
-                      <span className="cost-label">
-                        {trade.status === 'Live' ? 'Estimated Payout' : 'Final Returns'}
-                      </span>
-                      <span className={`cost-rupees ${
-                        trade.status === 'Won' ? 'text-emerald' : 
-                        trade.status === 'Lost' ? 'text-gray' : 'text-amber'
-                      }`}>
-                        {trade.status === 'Lost' ? '₹0' : `₹${trade.status === 'Live' ? Math.floor(trade.invested * 1.8) : trade.returns}`}
-                      </span>
+                    <span className={`status-pill pill-${getDisplayStatusLabel(trade.winningStatus).toLowerCase()}`}>
+                      {getDisplayStatusLabel(trade.winningStatus)}
+                    </span>
+                  </div>
+
+                  <div className="reward-card-divider"></div>
+
+                  <div className="reward-card-bottom">
+                    <div className="trade-position-details">
+                      <span className="position-label">Your Backed Option Stance:</span>
+                      {/* Maps literal selected option string text parameters fields natively */}
+                      <span className="position-value text-purple">{trade.option}</span>
+                    </div>
+
+                    <div className="reward-cost-metrics">
+                      <div className="metric-column">
+                        <span className="cost-label">Allocated Capital Put In</span>
+                        <span className="cost-rupees">₹{Number(trade.investmentAmount || 0).toFixed(2)}</span>
+                      </div>
+                      
+                      <div className="metric-column text-right">
+                        <span className="cost-label">
+                          {trade.winningStatus === 'pending' ? 'Estimated Return' : 'Settled Balance Yield'}
+                        </span>
+                        <span className={`cost-rupees ${
+                          trade.winningStatus === 'win' ? 'text-emerald' : 
+                          trade.winningStatus === 'loss' ? 'text-gray' : 'text-amber'
+                        }`}>
+                          {trade.winningStatus === 'loss' ? '₹0.00' : 
+                           `₹${trade.winningStatus === 'pending' 
+                              ? (trade.investmentAmount * 1.8).toFixed(2) 
+                              : Number(trade.payoutAmount || 0).toFixed(2)}`
+                          }
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  
-                  {trade.status === "Live" && (
-                    <button className="claim-action-btn live-pulse-border">
-                      View Live Arena
-                    </button>
-                  )}
+
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
       </main>

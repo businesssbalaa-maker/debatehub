@@ -80,7 +80,7 @@ export default function TradeCard({ product, onPlaceTrade }) {
         <div className="meta-badge-tag">
           <span className="badge-text">{category} • {subCategory}</span>
         </div>
-        <div className="meta-timer-tag">⏰ Ends near {formatEndTime(endTime)}</div>
+        <div className="meta-timer-tag">⏰ Approximate Ends near {formatEndTime(endTime)}</div>
       </div>
 
       {/* CORE OPINION TOPIC */}
@@ -95,7 +95,6 @@ export default function TradeCard({ product, onPlaceTrade }) {
             onClick={() => handleOptionSelect(opt)}
           >
             <span className="option-text-lbl">{opt.optionText}</span>
-            <span className="option-pool-tag">₹{Number(opt.totalInvestedAmount || 0).toLocaleString('en-IN')} pooled</span>
           </button>
         ))}
       </div>

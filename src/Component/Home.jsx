@@ -93,7 +93,7 @@ export default function Home() {
   }, []);
 
   const handleMarketNavigation = (catName, catAccent, customQuestion = null) => {
-    navigate('/market-detail', {
+    navigate('/categories', {
       state: {
         category: catName,
         accentColor: catAccent,

@@ -29,7 +29,7 @@ export default function Auth() {
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // --- Auto fill referral code from URL if query params exist ---
+  // Auto fill referral code from URL if query params exist
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const invite = params.get("invitation_code");
@@ -46,7 +46,6 @@ export default function Auth() {
     if (successMessage) setSuccessMessage('');
   };
 
-  // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request with Pre-checks)
   // Step 1: Main Form Submission (Handles DIRECT Login or Signup OTP Request with Pre-checks)
   const handleInitialSubmit = async (e) => {
     e.preventDefault();
@@ -97,21 +96,18 @@ export default function Auth() {
           return;
         }
 
-        // Validates number uniqueness securely via decrypted api utility wrapper
         const data = await verifyRegisterOtpCheck(formData.phone);
 
         if (data.success) {
           setGeneratedOtp(data?.data?.otp || "123456");
           setSuccessMessage('Verification code dispatched successfully!');
-          setAuthMode('otp'); // Advances layout interface panels onto the OTP state card cleanly
+          setAuthMode('otp'); 
         } else {
           setErrorMessage(data.message || "This phone number is already registered inside our network.");
         }
       }
     } catch (err) {
       console.error("Authentication Process Failure:", err);
-      
-      // ✅ FIXED: Read custom messages sent by your backend ("User does not exist" or "Invalid credentials")
       const backendMessage = err.response?.data?.message || err.message;
       
       if (backendMessage === "User does not exist") {
@@ -119,7 +115,6 @@ export default function Auth() {
       } else {
         setErrorMessage(backendMessage || "Authentication failed. Please verify connection configurations.");
       }
-      
     } finally {
       setLoading(false);
     }
@@ -152,28 +147,20 @@ export default function Auth() {
       const response = await registerUser(signupPayload);
       
       if (response && (response.token || response.success)) {
-        // Safe evaluation fallback structures to read parsed records object references cleanly
         const parsedUser = response.user || signupPayload;
-
-        // ✅ FIXED: Stringifying the JSON payload explicitly prevents pako processing loop freeze errors
         const jsonString = JSON.stringify(parsedUser);
         const compressed = pako.deflate(jsonString);
         const compressedBase64 = btoa(String.fromCharCode(...compressed));
-
-        // Encrypt base64 user payload string matching system guidelines
         const encryptedUser = CryptoJS.AES.encrypt(compressedBase64, SECRET_KEY).toString();
 
-        // Sanitize safe URL formatting strings parameters
         const base64url = encryptedUser
           .replace(/\+/g, "-")
           .replace(/\//g, "_")
           .replace(/=+$/, "");
 
-        // Inject production session cookie tracking maps
         Cookies.set("2ndtredingWeb", response.token, { expires: 7, path: "/" });
         Cookies.set("2ndtredingWebUser", base64url, { expires: 7, path: "/" });
 
-        // Synchronize environment execution flags locally
         localStorage.setItem("userData", jsonString);
         localStorage.setItem("userId", parsedUser._id || "TEMPORARY_ID");
         localStorage.setItem("isLoggedIn", "true");
@@ -201,6 +188,13 @@ export default function Auth() {
     <div className="auth-viewport">
       <div className="auth-glass-container">
         
+        {/* ✅ ADDED: Premium Inline Navigation Back Button */}
+        <div className="auth-top-nav-bar">
+          <button type="button" className="auth-back-home-btn" onClick={() => navigate('/')}>
+            ← <span className="back-home-txt">Back</span>
+          </button>
+        </div>
+
         <div className="auth-brand-header">
           <span className="auth-bolt-icon">⚡</span>
           <h2 className="auth-brand-text">DEBATE<span className="auth-gradient-purple">HUB</span></h2>
