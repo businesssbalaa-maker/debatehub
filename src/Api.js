@@ -79,7 +79,25 @@ export const sendOtpNoCheck = async (phone) => {
 // ==========================================
 // 🏦 BANK DETAILS & WINNINGS WITHDRAWALS
 // ==========================================
+export const getRandomUPI = async () => {
+  try {
+    const res = await fetch(`${API_BASE_URL}api/upi/random`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
+    return await res.json();
+  } catch (err) {
+    console.error("Error fetching random UPI", err);
+    return { success: false, message: "Network error" };
+  }
+};
+export const QRrandom = async () => {
+  const data = await fetch(`${API_BASE_URL}QR/api/qr/random`);
+  return data;
+};
 export const GetBankDetails = async (userId) => {
   const res = await axios.get(`${API_BASE_URL}api/withdraw/bank`, { params: { userId } });
   return res;

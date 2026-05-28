@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { getLiveProductsFeed, getuserData } from '../api'; // ✅ CONNECTED TO YOUR NEW API METHOD
+import { getLiveProductsFeed, getuserData } from '../Api'; // ✅ CONNECTED TO YOUR NEW API METHOD
 import './Home.css';
 
 export default function Home() {
@@ -38,7 +38,7 @@ export default function Home() {
   };
 
   useEffect(() => {
-    const localToken = localStorage.getItem('auth_token') || Cookies.get('2ndtredingWeb');
+    const localToken = localStorage.getItem('auth_token') || Cookies.get('proboWebUser');
     const localLoginFlag = localStorage.getItem('isLoggedIn');
     const savedUserId = localStorage.getItem('userId');
 

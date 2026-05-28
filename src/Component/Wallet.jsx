@@ -4,7 +4,7 @@ import Cookies from 'js-cookie';
 import './Wallet.css';
 
 // ✅ UNIFIED: Uses your updated profile reader method
-import { getuserData, getUserStatementHistory } from '../api';
+import { getuserData, getUserStatementHistory } from '../Api';
 
 export default function Wallet() {
   const navigate = useNavigate();
@@ -20,8 +20,8 @@ export default function Wallet() {
   const [loadingTransactions, setLoadingTransactions] = useState(true);
 
   const handleLogout = () => {
-    Cookies.remove("2ndtredingWeb", { path: "/" });
-    Cookies.remove("2ndtredingWebUser", { path: "/" });
+    Cookies.remove("proboWeb", { path: "/" });
+    Cookies.remove("proboWebUser", { path: "/" });
     localStorage.clear();
     navigate("/auth");
   };
@@ -110,7 +110,7 @@ export default function Wallet() {
   useEffect(() => {
     const localLoginFlag = localStorage.getItem('isLoggedIn');
     const savedUserId = localStorage.getItem('userId');
-    const token = localStorage.getItem('auth_token') || Cookies.get('2ndtredingWeb');
+    const token = localStorage.getItem('auth_token') || Cookies.get('proboWebUser');
 
     if (token && (localLoginFlag === "true" || savedUserId)) {
       setUserId(savedUserId);

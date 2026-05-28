@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import { getUserPurchaseHistory, getuserData } from '../api'; // Central API module imports
+import { getUserPurchaseHistory, getuserData } from '../Api'; // Central API module imports
 import './Rewards.css';
 
 export default function Rewards() {
@@ -21,7 +21,7 @@ export default function Rewards() {
   // 1. Fetch live metrics and balance allocations directly from DB
   const loadDynamicPortfolioData = async () => {
     const savedUserId = localStorage.getItem('userId');
-    const localToken = localStorage.getItem('auth_token') || Cookies.get('2ndtredingWeb');
+    const localToken = localStorage.getItem('auth_token') || Cookies.get('proboWebUser');
 
     if (!localToken || !savedUserId) {
       localStorage.clear();

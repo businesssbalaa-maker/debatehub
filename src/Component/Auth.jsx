@@ -6,7 +6,7 @@ import pako from "pako";
 import './Auth.css';
 
 // 1. STRICT IMPORT: Pulling updated and centralized endpoint functions safely
-import { registerUser, loginUser, SECRET_KEY, verifyRegisterOtpCheck } from '../api'; 
+import { registerUser, loginUser, SECRET_KEY, verifyRegisterOtpCheck } from '../Api'; 
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -158,8 +158,8 @@ export default function Auth() {
           .replace(/\//g, "_")
           .replace(/=+$/, "");
 
-        Cookies.set("2ndtredingWeb", response.token, { expires: 7, path: "/" });
-        Cookies.set("2ndtredingWebUser", base64url, { expires: 7, path: "/" });
+        Cookies.set("proboWeb", response.token, { expires: 7, path: "/" });
+        Cookies.set("proboWebUser", base64url, { expires: 7, path: "/" });
 
         localStorage.setItem("userData", jsonString);
         localStorage.setItem("userId", parsedUser._id || "TEMPORARY_ID");

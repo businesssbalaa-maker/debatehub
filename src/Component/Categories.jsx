@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import TradeCard from './TradeCard';
-import { getLiveProductsFeed, placeMarketPrediction } from '../api';
+import { getLiveProductsFeed, placeMarketPrediction } from '../Api';
 import './Categories.css'; 
 
 export default function Categories() {
