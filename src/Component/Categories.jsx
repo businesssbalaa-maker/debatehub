@@ -18,7 +18,7 @@ export default function Categories() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   
-  // ✅ NEW STATE: Global language toggle state matrix ('EN' | 'HI')
+  // Global language toggle state matrix ('EN' | 'HI')
   const [currentLang, setCurrentLang] = useState('EN');
 
   // 2️⃣ Protection Shield: Direct access guard & Fetch Data
@@ -34,17 +34,10 @@ export default function Categories() {
       const response = await getLiveProductsFeed();
       
       if (response.success && response.products) {
-        // Filter products strictly belonging to this root category (e.g., "Sports")
         const filtered = response.products.filter(
           p => String(p.category).toLowerCase() === String(category).toLowerCase()
         );
         setAllCategoryProducts(filtered);
-
-        // Dynamically extract unique subcategories (e.g., ["Cricket", "Football"])
-        const uniqueSubCats = [
-          ...new Set(filtered.map(p => p.subCategory).filter(Boolean))
-        ];
-        setSubCategories(uniqueSubCats);
       } else {
         setErrorMessage("Failed to populate matching market events.");
       }
@@ -60,12 +53,32 @@ export default function Categories() {
     loadCategoryData();
   }, [category]);
 
-  // 3️⃣ ✅ UPDATED PIPELINE: Filter products based on active subcategory AND language toggle
+  // Dynamically synchronize navigation subtabs based on selected language
+  useEffect(() => {
+    const langFilteredProducts = allCategoryProducts.filter(p => {
+      const normalizedLang = String(p.language || 'English').toLowerCase();
+      return (
+        normalizedLang === 'bilingual' || 
+        (currentLang === 'EN' && normalizedLang === 'english') || 
+        (currentLang === 'HI' && normalizedLang === 'hindi')
+      );
+    });
+
+    const uniqueSubCats = [
+      ...new Set(langFilteredProducts.map(p => p.subCategory).filter(Boolean))
+    ];
+    
+    setSubCategories(uniqueSubCats);
+
+    if (activeSubCat !== 'All' && !uniqueSubCats.includes(activeSubCat)) {
+      setActiveSubCat('All');
+    }
+  }, [currentLang, allCategoryProducts]);
+
+  // Filter cards matrix feed rendered in the main display port
   const displayedQuestions = allCategoryProducts.filter(p => {
-    // Check subcategory selection rule
     const matchesSubCat = activeSubCat === 'All' || p.subCategory === activeSubCat;
     
-    // Check language match rule (Allows explicit language string or bilingual fallbacks)
     const normalizedLang = String(p.language || 'English').toLowerCase();
     const matchesLang = 
       normalizedLang === 'bilingual' || 
@@ -85,12 +98,13 @@ export default function Categories() {
         return;
       }
 
+      // 🚀 TARGET MATCH PAYLOAD: Clean mapping matching your specific updated backend keys definitions
       const targetPayload = {
         userId: sessionUserId,
         questionId: tradePayload.questionId,
-        chosenOptionId: tradePayload.chosenOptionId,
+        chosenOptionId: tradePayload.chosenOptionId, // 🚀 Now passed safely with guaranteed string attributes!
         option: tradePayload.option,
-        investmentAmount: tradePayload.investmentAmount
+        investmentAmount: Number(tradePayload.investmentAmount)
       };
 
       const result = await placeMarketPrediction(targetPayload);
@@ -110,14 +124,12 @@ export default function Categories() {
       }
     } catch (err) {
       console.error("Order desk booking fault rejection:", err);
-      alert(err.message || "Investment failed. Please verify wallet balance.");
+      alert(err.response?.data?.message || err.message || "Investment failed. Please verify wallet balance.");
     }
   };
 
   return (
     <div className="subcat-page-container">
-      
-      {/* CATEGORY BANNER HEADER SECTION */}
       <header className="subcat-dynamic-header" style={{ '--subcat-accent': accentColor }}>
         <div className="subcat-header-wrap">
           <button className="subcat-back-btn" onClick={() => navigate('/')}>
@@ -128,7 +140,6 @@ export default function Categories() {
             <h2>{category} Hub</h2>
           </div>
 
-          {/* ✅ NEW: Premium Language Switch Toggle Button */}
           <div className="subcat-lang-switch-box">
             <button 
               type="button" 
@@ -149,8 +160,6 @@ export default function Categories() {
       </header>
 
       <main className="subcat-page-layout">
-        
-        {/* DYNAMIC SCROLLABLE SUBCATEGORIES TAB PANEL */}
         <section className="subcat-navigation-tabs-bar scrollbar-hide">
           <button 
             className={`subcat-tab-btn ${activeSubCat === 'All' ? 'active-tab' : ''}`}
@@ -172,7 +181,6 @@ export default function Categories() {
           ))}
         </section>
 
-        {/* FEED SELECTION AND QUESTION CONTENT MATRIX GRID */}
         <section className="subcat-feed-cards-section">
           {loading ? (
             <div className="subcat-loader-box">
@@ -190,7 +198,7 @@ export default function Categories() {
           ) : (
             <div className="subcat-vertical-cards-list">
               {displayedQuestions.map((item) => (
-                <div key={item._id} className="list-item-card-wrapper">
+                <div key={item._id?.$oid || item._id} className="list-item-card-wrapper">
                   <TradeCard 
                     product={item}
                     onPlaceTrade={handleTradeExecution}
@@ -200,7 +208,6 @@ export default function Categories() {
             </div>
           )}
         </section>
-
       </main>
     </div>
   );

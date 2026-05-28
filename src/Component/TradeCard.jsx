@@ -51,14 +51,23 @@ export default function TradeCard({ product, onPlaceTrade }) {
       return;
     }
 
-    // ✅ UPDATED HANDLER REFLECTION: Emits structured variables precisely tailored to match route properties keys
+    // 🚀 STABLE OBJECT-ID PARSING SWEEP: Safely extracts a clean 24-character hex string string token
+    const parsedProductId = _id?.$oid || _id;
+    const parsedOptionId = selectedOption._id?.$oid || selectedOption._id || selectedOption.id;
+
+    if (!parsedOptionId || !parsedProductId) {
+      setInputError("System parsing failure tracking choice data parameters. Please try again.");
+      return;
+    }
+
+    // ✅ EMITS UNIFIED ATTRIBUTES TAILORED PERFECTLY TO MATCH YOUR NEW SUB-SCHEMAS KEYS
     if (onPlaceTrade) {
       onPlaceTrade({
-        questionId: _id,
-        question: question,               // Transmits literal question text parameter 
-        chosenOptionId: selectedOption._id,
-        option: selectedOption.optionText, // Transmits literal option text string match parameters
-        investmentAmount: investmentAmount
+        questionId: String(parsedProductId),
+        question: question,               
+        chosenOptionId: String(parsedOptionId), // 🚀 Feeds into your brand new schema requirement!
+        option: selectedOption.optionText,     
+        investmentAmount: Number(investmentAmount)
       });
     }
     
@@ -88,15 +97,18 @@ export default function TradeCard({ product, onPlaceTrade }) {
 
       {/* DYNAMIC MCQ CONFIGURABLE BUTTONS BLOCK */}
       <div className="mcq-options-stack">
-        {options.map((opt) => (
-          <button 
-            key={opt._id} 
-            className="mcq-option-row-btn" 
-            onClick={() => handleOptionSelect(opt)}
-          >
-            <span className="option-text-lbl">{opt.optionText}</span>
-          </button>
-        ))}
+        {options.map((opt) => {
+          const optIdString = opt._id?.$oid || opt._id;
+          return (
+            <button 
+              key={optIdString} 
+              className="mcq-option-row-btn" 
+              onClick={() => handleOptionSelect(opt)}
+            >
+              <span className="option-text-lbl">{opt.optionText}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* MINIMUM ENTRY STATUS COMPLIANCE FOOTER */}
@@ -150,6 +162,7 @@ export default function TradeCard({ product, onPlaceTrade }) {
           <div className="slip-action-footers">
             <button className="slip-btn-abort" onClick={handleCancel}>Cancel</button>
             <button 
+              type="button"
               className="slip-btn-execute" 
               onClick={handleConfirmOrder}
               disabled={!!inputError || investmentAmount <= 0}
