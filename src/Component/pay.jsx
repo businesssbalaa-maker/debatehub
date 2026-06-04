@@ -8,7 +8,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import "./pay.css";
-import { getRandomUPI, QRrandom, RechargeBalence, SECRET_KEY } from "../api";
+import { getRandomUPI, QRrandom, RechargeBalence, SECRET_KEY } from "../Api";
 import { useLocation, useNavigate } from "react-router-dom";
 import CryptoJS from "crypto-js";
 import Cookies from "js-cookie";
