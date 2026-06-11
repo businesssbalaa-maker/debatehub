@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import './Wallet.css';
-import { getuserData, getUserStatementHistory } from '../api';
+import { getuserData, getUserStatementHistory } from '../Api';
 
 export default function Wallet() {
   const navigate = useNavigate();
