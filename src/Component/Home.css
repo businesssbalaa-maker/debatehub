@@ -497,7 +497,7 @@
   border-radius: 1rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* justify-content: space-between; */
   gap: 1rem;
   transition: border-color 0.2s;
 }

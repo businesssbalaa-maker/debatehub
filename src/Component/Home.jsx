@@ -105,7 +105,7 @@ export default function Home() {
           }));
 
           setCategories(computedCategories);
-          setTrendingQuestions(allProducts.slice(0, 6)); // Expanded to 6 items to comfortably fill grid space
+          setTrendingQuestions(allProducts.slice(0, 6)); // Comfortably fill grid space
         }
       } catch (err) {
         console.error(
@@ -138,6 +138,7 @@ export default function Home() {
     : trendingQuestions.filter(
         (q) => q?.category?.trim().toLowerCase() === activeTab?.trim().toLowerCase(),
       );
+
   return (
     <div className="app-container">
       {/* 1. Global Live Event Ticker Header Banner */}
@@ -228,8 +229,7 @@ export default function Home() {
               </p>
             </div>
 
-            {/* 3. Embedded Slanted Live Event Arena Card (Fills the blank spaces under Left Sidebar) */}
-            {/* STATIC REPLACEMENT: High-Fidelity Animated Feature & Status Widget */}
+            {/* 3. Embedded Slanted Live Event Arena Card */}
             <div className="glass-match-card preview-premium-card static-trust-widget">
               <div className="premium-time-badge platform-status-badge">
                 <div className="pulse-dot radar-pulse"></div> SYSTEM ACTIVE
@@ -344,6 +344,7 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* 🚀 RESTORED & DYNAMIC: आपका पुराना ओरिजिनल कार्ड लेआउट अब पूरी तरह API ऑप्शंस के साथ सिंक है */}
               <div className="trending-grid">
                 {filteredQuestions.length > 0 ? (
                   filteredQuestions.map((item) => (
@@ -360,15 +361,40 @@ export default function Home() {
                       style={{ cursor: "pointer" }}
                     >
                       <div className="trend-card-top-row">
-                        <span className="live-badge">● {item.category}</span>
-                        <span className="timestamp-badge">⚡ Live Pool</span>
+                        <span className="live-badge">● {item.category} {item.subCategory ? `• ${item.subCategory}` : ''}</span>
+                        <span className="timestamp-badge">
+                          ⏰ Ends: {item.endTime ? new Date(item.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '12:33 pm'}
+                        </span>
                       </div>
+                      
                       <h4 className="trend-question">{item.question}</h4>
 
-                      {/* Added Dual Options Layout Selector inside small trend cards for standard layout look */}
+                      {/* 🚀 FIXED BIDDING ROW: बिना किसी प्राइस टैग के सीधे डेटाबेस से डायनामिक बटन्स रेंडर हो रहे हैं */}
                       <div className="trend-mini-bidding-row">
-                        <button className="mini-bid-btn-yes">Yes ₹5.5</button>
-                        <button className="mini-bid-btn-no">No ₹4.5</button>
+                        {item.options && item.options.length > 0 ? (
+                          item.options.map((opt, idx) => (
+                            <button 
+                              key={opt._id || idx} 
+                              className="mini-bid-btn-generic"
+                              style={{
+                                padding: "10px 14px",
+                                background: "rgba(255, 255, 255, 0.05)",
+                                border: "1px solid rgba(255, 255, 255, 0.1)",
+                                borderRadius: "8px",
+                                color: "#ffffff",
+                                fontWeight: "600",
+                                cursor: "pointer"
+                              }}
+                            >
+                              {opt.optionText}
+                            </button>
+                          ))
+                        ) : (
+                          <>
+                            <button className="mini-bid-btn-yes">Yes</button>
+                            <button className="mini-bid-btn-no">No</button>
+                          </>
+                        )}
                       </div>
                     </div>
                   ))

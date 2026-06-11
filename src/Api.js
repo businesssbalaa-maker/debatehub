@@ -5,7 +5,7 @@ import { decryptResponse } from "./utils/decrypt";
 // 📡 CONFIGURATIONS & ENVIRONMENT ANCHORS
 // ==========================================
 export const API_BASE_URL = "https://backend.debatehub.in/";
-export const API_BASE_URL2 = "https://backend.debatehub.in";
+export const API_BASE_URL2 = "http://backend.debatehub.in";
 export const SECRET_KEY = "SECRET_KEY12356789";
 
 // ==========================================
@@ -223,4 +223,16 @@ export const getuserData = async (userId)=>{
   } catch (error) {
     console.log(error)
   }
+}
+
+export const getcatgory= async()=>{
+  try {
+    const res =await axios.get(`${API_BASE_URL}api/products/areas/all`); 
+    console.log(res.data);
+    return res.data;
+    
+  }
+    catch (error) { 
+      console.log(error)
+    } 
 }
