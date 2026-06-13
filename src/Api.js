@@ -11,7 +11,16 @@ export const SECRET_KEY = "SECRET_KEY12356789";
 // ==========================================
 // 🔒 SYSTEM AUTHENTICATION MODULES
 // ==========================================
+export const getComingSoonList = async () => {
+  const res = await axios.get(`${API_BASE_URL}api/coming-soon`);
+  return res.data;
+};
 
+// Get single coming soon item
+export const getComingSoonById = async (id) => {
+  const res = await axios.get(`${API_BASE_URL}api/coming-soon/${id}`);
+  return res.data;
+};
 export const verifyRegisterOtpCheck = async (phone) => {
   try {
     const res = await axios.post(`${API_BASE_URL}api/users/verifyRegisterOtp`, { phone });

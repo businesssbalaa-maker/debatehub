@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Cookies from "js-cookie";
-import { getLiveProductsFeed, getuserData } from "../Api";
+import { getLiveProductsFeed, getuserData, getComingSoonList } from "../Api";
 import "./Home.css";
-
+import ComingSoonCard from "./ComingSoonCard";
 export default function Home() {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -16,6 +16,9 @@ export default function Home() {
   // New States for enhanced professional features
   const [activeTab, setActiveTab] = useState("All");
   const [tickerVolume, setTickerVolume] = useState(482910);
+
+  // Coming Soon State
+  const [comingSoonList, setComingSoonList] = useState([]);
 
   // Live platform statistical values
   const statsMetrics = [
@@ -117,6 +120,26 @@ export default function Home() {
     fetchMarketplaceData();
   }, []);
 
+  // Fetch Coming Soon Items
+  useEffect(() => {
+    async function fetchComingSoon() {
+      try {
+        const data = await getComingSoonList();
+        console.log(data,"jnjkjnkjnk");
+        if (data.
+data) {
+          setComingSoonList(Array.isArray(data.
+data) ? data.
+data : data.
+data || []);
+        }
+      } catch (err) {
+        console.error("Failed to load coming soon items:", err);
+      }
+    }
+    fetchComingSoon();
+  }, []);
+
   const handleMarketNavigation = (
     catName,
     catAccent,
@@ -130,14 +153,6 @@ export default function Home() {
       },
     });
   };
-
-  // Filter trending questions based on top horizontal secondary filters
-  const filteredQuestions =
-  activeTab === "All"
-    ? trendingQuestions
-    : trendingQuestions.filter(
-        (q) => q?.category?.trim().toLowerCase() === activeTab?.trim().toLowerCase(),
-      );
 
   return (
     <div className="app-container">
@@ -333,77 +348,29 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 4. Filter Interactive Feed Switcher Pills */}
+            {/* 4. Coming Soon Events Section (Retaining original trend-card styling) */}
             <div className="space-y-3">
               <div className="feed-filter-bar">
-                <h3 className="section-title">Trending Questions</h3>
+                <h3 className="section-title">Coming Soon</h3>
                 <div className="filter-chips-cluster">
-                  <button className="chip-btn active-chip">Trending</button>
-                  <button className="chip-btn">High Volume</button>
-                  <button className="chip-btn">Closing Soon</button>
+                  <button className="chip-btn active-chip">Upcoming Launches</button>
                 </div>
               </div>
-
-              {/* 🚀 RESTORED & DYNAMIC: आपका पुराना ओरिजिनल कार्ड लेआउट अब पूरी तरह API ऑप्शंस के साथ सिंक है */}
-              <div className="trending-grid">
-                {filteredQuestions.length > 0 ? (
-                  filteredQuestions.map((item) => (
-                    <div
-                      key={item._id}
-                      className="trend-card border-purple-500/20"
-                      onClick={() =>
-                        handleMarketNavigation(
-                          item.category,
-                          "#915EFF",
-                          item.question,
-                        )
-                      }
-                      style={{ cursor: "pointer" }}
-                    >
-                      <div className="trend-card-top-row">
-                        <span className="live-badge">● {item.category} {item.subCategory ? `• ${item.subCategory}` : ''}</span>
-                        <span className="timestamp-badge">
-                          ⏰ Ends: {item.endTime ? new Date(item.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '12:33 pm'}
-                        </span>
-                      </div>
-                      
-                      <h4 className="trend-question">{item.question}</h4>
-
-                      {/* 🚀 FIXED BIDDING ROW: बिना किसी प्राइस टैग के सीधे डेटाबेस से डायनामिक बटन्स रेंडर हो रहे हैं */}
-                      <div className="trend-mini-bidding-row">
-                        {item.options && item.options.length > 0 ? (
-                          item.options.map((opt, idx) => (
-                            <button 
-                              key={opt._id || idx} 
-                              className="mini-bid-btn-generic"
-                              style={{
-                                padding: "10px 14px",
-                                background: "rgba(255, 255, 255, 0.05)",
-                                border: "1px solid rgba(255, 255, 255, 0.1)",
-                                borderRadius: "8px",
-                                color: "#ffffff",
-                                fontWeight: "600",
-                                cursor: "pointer"
-                              }}
-                            >
-                              {opt.optionText}
-                            </button>
-                          ))
-                        ) : (
-                          <>
-                            <button className="mini-bid-btn-yes">Yes</button>
-                            <button className="mini-bid-btn-no">No</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="empty-fallback-text">
-                    No active prediction events in this segment.
-                  </p>
-                )}
-              </div>
+<div className="trending-grid">
+  {comingSoonList.length > 0 ? (
+    comingSoonList.map((item) => (
+      <ComingSoonCard 
+        key={item._id} 
+        item={item} 
+        handleMarketNavigation={handleMarketNavigation} 
+      />
+    ))
+  ) : (
+    <p className="empty-fallback-text">
+      No upcoming products found at the moment.
+    </p>
+  )}
+</div>
             </div>
           </div>
         </section>
